@@ -55,7 +55,6 @@ def db_conn():
         )
         print(connection)
         return connection
-    
     except Error as e:
         print(e)
 
