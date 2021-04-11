@@ -48,15 +48,15 @@ def db_init():
 
 def db_conn():
     try:
-        with connect(
+        connection = connect(
             host = "localhost",
             user = "user",
             password = "password",
-        ) as connection:
-            print(connection)
+        )
+        print(connection)
+        return connection
     except Error as e:
         print(e)
-    return connection
 
 
 def to_json(data):

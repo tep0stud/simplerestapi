@@ -17,3 +17,11 @@ CREATE TABLE themes(id SERIAL PRIMARY KEY, title TEXT, url TEXT);
 CREATE USER 'user'@'%' IDENTIFIED BY 'petyak00';
 GRANT ALL PRIVILEGES ON themes.* TO 'user'@'%';
 FLUSH PRIVILEGES;
+
+docker build --tag simpleapi-python .
+docker run \
+  --rm -d \
+  --network simplerestapi \
+  --name simpleapi-server \
+  -p 5000:5000 \
+  simpleapi-python
