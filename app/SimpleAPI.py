@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import postgresql
+from mysql.connector import connect, Error
 import flask
 import json
 
@@ -9,12 +9,57 @@ app = flask.Flask(__name__)
 # disables JSON pretty-printing in flask.jsonify
 # app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
+DB_HOST = "mysqldb"
+DB_NAME = "themes"
+DB_TABLE = "themes"
+DB_USER = "user"
+DB_PASSWORD = "petyak00"
+
+
+@app.route('/initdb')
+def db_init():
+    # весь код роботи з базою даних обертати в блок  try ... except, також треба закривати 
+    # всі з'єднання до бази за допомогою диспетчера контекста with ... as ...
+    mydb = connect(
+        host = DB_HOST,
+        user = DB_USER,
+        password = DB_PASSWORD
+    )
+    cursor = mydb.cursor()
+    # додати код ініціалізації користувача з перевіркою на існування
+    cursor.execute("DROP DATABASE IF EXISTS " + DB_NAME)
+    cursor.execute("CREATE DATABASE " + DB_NAME)
+    cursor.close()
+
+    mydb = connect(
+        host = DB_HOST,
+        user = DB_USER,
+        password = DB_PASSWORD,
+        database = DB_NAME
+    )
+    cursor = mydb.cursor()
+
+    cursor.execute("DROP TABLE IF EXISTS " + DB_TABLE)
+    cursor.execute("CREATE TABLE " + DB_TABLE + " (id SERIAL PRIMARY KEY, title TEXT, url TEXT)")
+    cursor.close()
+
+    return resp(200, {"status": "init database done"})
+
 
 def db_conn():
-    return postgresql.open('pq://eax@localhost/eax')
+    try:
+        with connect(
+            host = "localhost",
+            user = "user",
+            password = "password",
+        ) as connection:
+            print(connection)
+    except Error as e:
+        print(e)
+    return connection
 
 
-
+def to_json(data):
     return json.dumps(data) + "\n"
 
 
@@ -117,4 +162,4 @@ def delete_theme(theme_id):
 
 if __name__ == '__main__':
     app.debug = True  # enables auto reload during development
-    app.run()
+    app.run(host ='0.0.0.0')

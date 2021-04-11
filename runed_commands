@@ -1,0 +1,19 @@
+docker volume create mysql
+docker volume create mysql_config
+docker network create simplerestapi
+
+docker run --rm -d -v mysql:/var/lib/mysql \
+  -v mysql_config:/etc/mysql -p 3306:3306 \
+  --network simplerestapi \
+  --name mysqldb \
+  -e MYSQL_ROOT_PASSWORD=petyak00 \
+  mysql
+
+docker exec -ti mysqldb mysql -u root -p
+DROP DATABASE IF EXISTS themes;
+CREATE DATABASE themes;
+DROP TABLE IF EXISTS themes;
+CREATE TABLE themes(id SERIAL PRIMARY KEY, title TEXT, url TEXT);
+CREATE USER 'user'@'%' IDENTIFIED BY 'petyak00';
+GRANT ALL PRIVILEGES ON themes.* TO 'user'@'%';
+FLUSH PRIVILEGES;
