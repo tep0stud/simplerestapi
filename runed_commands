@@ -20,7 +20,7 @@ FLUSH PRIVILEGES;
 
 docker build --tag simpleapi-python .
 docker run \
-  --rm -d \
+  --rm  \
   --network simplerestapi \
   --name simpleapi-server \
   -p 5000:5000 \

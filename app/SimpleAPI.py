@@ -3,6 +3,7 @@
 from mysql.connector import connect, Error
 import flask
 import json
+import sys
 
 app = flask.Flask(__name__)
 
@@ -41,6 +42,7 @@ def db_init():
 
     cursor.execute("DROP TABLE IF EXISTS " + DB_TABLE)
     cursor.execute("CREATE TABLE " + DB_TABLE + " (id SERIAL PRIMARY KEY, title TEXT, url TEXT)")
+    cursor.execute("INSERT INTO " + DB_TABLE + " (title,url) VALUES ('text','url')")
     cursor.close()
 
     return resp(200, {"status": "init database done"})
@@ -49,11 +51,11 @@ def db_init():
 def db_conn():
     try:
         connection = connect(
-            host = "localhost",
-            user = "user",
-            password = "password",
+        host = DB_HOST,
+        user = DB_USER,
+        password = DB_PASSWORD,
+        database = DB_NAME
         )
-        print(connection)
         return connection
     except Error as e:
         print(e)
@@ -118,12 +120,14 @@ def page_not_found(e):
 
 @app.route('/api/1.0/themes', methods=['GET'])
 def get_themes():
-    with db_conn() as db:
-        tuples = db.query("SELECT id, title, url FROM themes")
-        themes = []
-        for (id, title, url) in tuples:
-            themes.append({"id": id, "title": title, "url": url})
-        return resp(200, {"themes": themes})
+    db = db_conn()
+    cursor = db.cursor()
+    cursor.execute("SELECT id, title, url FROM " + DB_TABLE)
+    tuples = cursor.fetchall()
+    themes = []
+    for (id, title, url) in tuples:
+        themes.append({"id": id, "title": title, "url": url})
+    return resp(200, {"themes": themes})
 
 
 @app.route('/api/1.0/themes', methods=['POST'])
@@ -132,11 +136,13 @@ def post_theme():
     if errors:  # list is not empty
         return resp(400, {"errors": errors})
 
-    with db_conn() as db:
-        insert = db.prepare(
-            "INSERT INTO themes (title, url) VALUES ($1, $2) " +
-            "RETURNING id")
-        [(theme_id,)] = insert(json['title'], json['url'])
+    with db_conn() as db:    
+        cursor = db.cursor(prepared=True)
+        insert = "INSERT INTO " + DB_TABLE + " (title, url) VALUES (?, ?)"
+        value = (json['title'], json['url'])
+        cursor.execute(insert, value)
+        db.commit()
+        theme_id = cursor.lastrowid
         return resp(200, {"theme_id": theme_id})
 
 
@@ -147,19 +153,27 @@ def put_theme(theme_id):
         return resp(400, {"errors": errors})
 
     with db_conn() as db:
-        update = db.prepare(
-            "UPDATE themes SET title = $2, url = $3 WHERE id = $1")
-        (_, cnt) = update(theme_id, json['title'], json['url'])
+        cursor = db.cursor(prepared=True)
+        update = "UPDATE " + DB_TABLE + " SET title = ?, url = ? WHERE id = ?"
+        value = (json['title'], json['url'], theme_id)
+        cursor.execute(update, value)
+        db.commit()
+        cnt = cursor.rowcount
         return resp(affected_num_to_code(cnt), {})
 
 
 @app.route('/api/1.0/themes/<int:theme_id>', methods=['DELETE'])
 def delete_theme(theme_id):
     with db_conn() as db:
-        delete = db.prepare("DELETE FROM themes WHERE id = $1")
-        (_, cnt) = delete(theme_id)
+        cursor = db.cursor(prepared=True)
+        delete = "DELETE FROM " + DB_TABLE + " WHERE id = ?"
+        value = (theme_id,)
+        cursor.execute(delete, value)
+        db.commit()
+        cnt = cursor.rowcount
+        # print(value, flush=True)
         return resp(affected_num_to_code(cnt), {})
 
 if __name__ == '__main__':
     app.debug = True  # enables auto reload during development
-    app.run(host ='0.0.0.0')
+    app.run(debug=True, host ='0.0.0.0')
