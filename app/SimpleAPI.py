@@ -171,8 +171,9 @@ def delete_theme(theme_id):
         cursor.execute(delete, value)
         db.commit()
         cnt = cursor.rowcount
-        # print(value, flush=True)
+        # print(sqlite.paramstyle , flush=True)
         return resp(affected_num_to_code(cnt), {})
+
 
 if __name__ == '__main__':
     app.debug = True  # enables auto reload during development
